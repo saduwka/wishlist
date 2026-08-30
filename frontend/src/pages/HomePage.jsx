@@ -4,17 +4,32 @@ import GiftCard from "../components/GiftCard.jsx";
 import ReserveModal from "../components/ReserveModal.jsx";
 
 const NAME_KEY = "wishlist_guest_name";
+const MY_ITEMS_KEY = "wishlist_my_items";
+
+function readMyItems() {
+  try {
+    const raw = localStorage.getItem(MY_ITEMS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(Number).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMyItems(ids) {
+  localStorage.setItem(MY_ITEMS_KEY, JSON.stringify(ids));
+}
 
 export default function HomePage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [savedName, setSavedName] = useState(
-    () => localStorage.getItem(NAME_KEY) || ""
-  );
+  const [myItemIds, setMyItemIds] = useState(() => readMyItems());
   const [busyId, setBusyId] = useState(null);
   const [modal, setModal] = useState(null);
+  const [modalStep, setModalStep] = useState("name");
   const [modalName, setModalName] = useState("");
+  const [modalPin, setModalPin] = useState("");
   const [modalError, setModalError] = useState("");
 
   const load = useCallback(async () => {
@@ -38,21 +53,21 @@ export default function HomePage() {
   }, [load]);
 
   function canUnreserve(item) {
-    if (!item.reserved_by || !savedName.trim()) return false;
-    return (
-      savedName.trim().toLowerCase() === item.reserved_by.trim().toLowerCase()
-    );
+    return item.reserved_by && myItemIds.includes(Number(item.id));
   }
 
   function openReserveModal(item) {
     setModalError("");
-    setModalName(savedName);
+    setModalStep("name");
+    setModalPin("");
+    setModalName(localStorage.getItem(NAME_KEY) || "");
     setModal({ mode: "reserve", itemId: item.id, itemTitle: item.title });
   }
 
   function openUnreserveModal(item) {
     setModalError("");
-    setModalName(savedName);
+    setModalStep("pin");
+    setModalPin("");
     setModal({ mode: "unreserve", itemId: item.id, itemTitle: item.title });
   }
 
@@ -60,13 +75,37 @@ export default function HomePage() {
     if (busyId) return;
     setModal(null);
     setModalError("");
+    setModalPin("");
+    setModalStep("name");
+  }
+
+  function onModalNext() {
+    const name = modalName.trim();
+    if (name.length < 2) {
+      setModalError("Укажите имя (минимум 2 символа)");
+      return;
+    }
+    setModalError("");
+    setModalStep("pin");
+  }
+
+  function onModalBack() {
+    setModalError("");
+    setModalPin("");
+    setModalStep("name");
   }
 
   async function onModalConfirm() {
     if (!modal) return;
-    const name = modalName.trim();
-    if (name.length < 2) {
-      setModalError("Укажите имя (минимум 2 символа)");
+
+    if (modal.mode === "reserve" && modalStep === "name") {
+      onModalNext();
+      return;
+    }
+
+    const pin = modalPin.trim();
+    if (!/^\d{4}$/.test(pin)) {
+      setModalError("PIN должен состоять из 4 цифр");
       return;
     }
 
@@ -74,19 +113,27 @@ export default function HomePage() {
     setModalError("");
     try {
       if (modal.mode === "reserve") {
-        const data = await reserveItem(modal.itemId, name);
+        const name = modalName.trim();
+        const data = await reserveItem(modal.itemId, name, pin);
         setItems((prev) =>
           prev.map((it) => (it.id === modal.itemId ? data.item : it))
         );
+        localStorage.setItem(NAME_KEY, name);
+        const nextIds = [...new Set([...myItemIds, Number(modal.itemId)])];
+        setMyItemIds(nextIds);
+        saveMyItems(nextIds);
       } else {
-        const data = await unreserveItem(modal.itemId, name);
+        const data = await unreserveItem(modal.itemId, pin);
         setItems((prev) =>
           prev.map((it) => (it.id === modal.itemId ? data.item : it))
         );
+        const nextIds = myItemIds.filter((id) => id !== Number(modal.itemId));
+        setMyItemIds(nextIds);
+        saveMyItems(nextIds);
       }
-      localStorage.setItem(NAME_KEY, name);
-      setSavedName(name);
       setModal(null);
+      setModalPin("");
+      setModalStep("name");
     } catch (err) {
       setModalError(err.message);
       await load();
@@ -104,9 +151,13 @@ export default function HomePage() {
     <section className="page">
       <div className="hero">
         <h1>Наше новоселье!</h1>
-          <p>Мы очень рады, что вы будете с нами в этот день. Если хотите порадовать нас подарком —
-          ниже список вещей, которые нам действительно нужны в новом доме. Отметьте, что уже выбрали, чтобы никто не подарил то же самое 💛</p>
-                {!loading && !error && (
+        <p>
+          Мы очень рады, что вы будете с нами в этот день. Если хотите порадовать
+          нас подарком — ниже список вещей, которые нам действительно нужны в
+          новом доме. Отметьте, что уже выбрали, чтобы никто не подарил то же
+          самое 💛
+        </p>
+        {!loading && !error && (
           <p className="meta">
             Свободно: <strong>{free}</strong> из {items.length}
           </p>
@@ -136,11 +187,16 @@ export default function HomePage() {
       <ReserveModal
         open={Boolean(modal && modalItem)}
         mode={modal?.mode || "reserve"}
+        step={modalStep}
         itemTitle={modal?.itemTitle || ""}
         name={modalName}
+        pin={modalPin}
         busy={Boolean(busyId)}
         error={modalError}
         onNameChange={setModalName}
+        onPinChange={setModalPin}
+        onNext={onModalNext}
+        onBack={onModalBack}
         onConfirm={onModalConfirm}
         onClose={closeModal}
       />

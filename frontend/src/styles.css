@@ -454,6 +454,13 @@ input {
   margin-top: 0.5rem;
 }
 
+.pin-input {
+  font-size: 1.35rem;
+  letter-spacing: 0.35em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .admin-head .row {
   margin-top: 0;
 }

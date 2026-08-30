@@ -41,19 +41,20 @@ export async function fetchItems() {
   return { items: data || [] };
 }
 
-export async function reserveItem(id, name) {
+export async function reserveItem(id, name, pin) {
   const { data, error } = await supabase.rpc("reserve_item", {
     p_id: id,
     p_name: name,
+    p_pin: pin,
   });
   if (error) throw rpcError(error);
   return { item: data };
 }
 
-export async function unreserveItem(id, name) {
+export async function unreserveItem(id, pin) {
   const { data, error } = await supabase.rpc("unreserve_item", {
     p_id: id,
-    p_name: name,
+    p_pin: pin,
   });
   if (error) throw rpcError(error);
   return { item: data };
