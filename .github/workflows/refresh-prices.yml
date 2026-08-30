@@ -1,0 +1,25 @@
+name: Refresh Kaspi prices
+
+on:
+  schedule:
+    # 03:00 Asia/Almaty (UTC+5) = 22:00 UTC
+    - cron: "0 22 * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call refresh-all-prices
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SUPABASE_URL: https://mnxxnomcwzsisusejuqx.supabase.co
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set in GitHub repository secrets"
+            exit 1
+          fi
+          curl -fsS -X POST "$SUPABASE_URL/functions/v1/refresh-all-prices" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            -d '{}'

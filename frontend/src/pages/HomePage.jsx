@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchItems, reserveItem, unreserveItem } from "../api.js";
 import GiftCard from "../components/GiftCard.jsx";
+import ReserveModal from "../components/ReserveModal.jsx";
 
 const NAME_KEY = "wishlist_guest_name";
 
@@ -8,8 +9,13 @@ export default function HomePage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "");
+  const [savedName, setSavedName] = useState(
+    () => localStorage.getItem(NAME_KEY) || ""
+  );
   const [busyId, setBusyId] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [modalName, setModalName] = useState("");
+  const [modalError, setModalError] = useState("");
 
   const load = useCallback(async () => {
     setError("");
@@ -31,40 +37,58 @@ export default function HomePage() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    localStorage.setItem(NAME_KEY, name);
-  }, [name]);
-
-  async function onReserve(id) {
-    if (name.trim().length < 2) {
-      setError("Сначала укажите своё имя (минимум 2 символа)");
-      return;
-    }
-    setBusyId(id);
-    setError("");
-    try {
-      const data = await reserveItem(id, name.trim());
-      setItems((prev) => prev.map((it) => (it.id === id ? data.item : it)));
-    } catch (err) {
-      setError(err.message);
-      await load();
-    } finally {
-      setBusyId(null);
-    }
+  function canUnreserve(item) {
+    if (!item.reserved_by || !savedName.trim()) return false;
+    return (
+      savedName.trim().toLowerCase() === item.reserved_by.trim().toLowerCase()
+    );
   }
 
-  async function onUnreserve(id) {
-    if (name.trim().length < 2) {
-      setError("Укажите то же имя, которым выбирали подарок");
+  function openReserveModal(item) {
+    setModalError("");
+    setModalName(savedName);
+    setModal({ mode: "reserve", itemId: item.id, itemTitle: item.title });
+  }
+
+  function openUnreserveModal(item) {
+    setModalError("");
+    setModalName(savedName);
+    setModal({ mode: "unreserve", itemId: item.id, itemTitle: item.title });
+  }
+
+  function closeModal() {
+    if (busyId) return;
+    setModal(null);
+    setModalError("");
+  }
+
+  async function onModalConfirm() {
+    if (!modal) return;
+    const name = modalName.trim();
+    if (name.length < 2) {
+      setModalError("Укажите имя (минимум 2 символа)");
       return;
     }
-    setBusyId(id);
-    setError("");
+
+    setBusyId(modal.itemId);
+    setModalError("");
     try {
-      const data = await unreserveItem(id, name.trim());
-      setItems((prev) => prev.map((it) => (it.id === id ? data.item : it)));
+      if (modal.mode === "reserve") {
+        const data = await reserveItem(modal.itemId, name);
+        setItems((prev) =>
+          prev.map((it) => (it.id === modal.itemId ? data.item : it))
+        );
+      } else {
+        const data = await unreserveItem(modal.itemId, name);
+        setItems((prev) =>
+          prev.map((it) => (it.id === modal.itemId ? data.item : it))
+        );
+      }
+      localStorage.setItem(NAME_KEY, name);
+      setSavedName(name);
+      setModal(null);
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
       await load();
     } finally {
       setBusyId(null);
@@ -72,6 +96,9 @@ export default function HomePage() {
   }
 
   const free = items.filter((i) => !i.reserved_by).length;
+  const modalItem = modal
+    ? items.find((it) => it.id === modal.itemId)
+    : null;
 
   return (
     <section className="page">
@@ -81,15 +108,6 @@ export default function HomePage() {
           Выберите, что хотите подарить, и отметьте карточку своим именем — так
           другие гости не купят то же самое.
         </p>
-        <label className="name-field">
-          <span>Ваше имя</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Например, Иван"
-            maxLength={80}
-          />
-        </label>
         {!loading && !error && (
           <p className="meta">
             Свободно: <strong>{free}</strong> из {items.length}
@@ -106,8 +124,9 @@ export default function HomePage() {
             key={item.id}
             item={item}
             busy={busyId === item.id}
-            onReserve={() => onReserve(item.id)}
-            onUnreserve={() => onUnreserve(item.id)}
+            canUnreserve={canUnreserve(item)}
+            onReserve={() => openReserveModal(item)}
+            onUnreserve={() => openUnreserveModal(item)}
           />
         ))}
       </div>
@@ -115,6 +134,18 @@ export default function HomePage() {
       {!loading && items.length === 0 && !error && (
         <div className="banner">Список пока пуст — загляните позже.</div>
       )}
+
+      <ReserveModal
+        open={Boolean(modal && modalItem)}
+        mode={modal?.mode || "reserve"}
+        itemTitle={modal?.itemTitle || ""}
+        name={modalName}
+        busy={Boolean(busyId)}
+        error={modalError}
+        onNameChange={setModalName}
+        onConfirm={onModalConfirm}
+        onClose={closeModal}
+      />
     </section>
   );
 }

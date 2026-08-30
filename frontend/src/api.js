@@ -109,6 +109,23 @@ export async function deleteItem(token, id) {
   return null;
 }
 
+export async function refreshAllPrices(token) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/refresh-all-prices`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ token }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Ошибка ${res.status}`);
+  }
+  return data;
+}
+
 export async function parseKaspiLink(token, url) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/parse-kaspi`, {
     method: "POST",

@@ -5,6 +5,7 @@ import {
   fetchItems,
   formatPrice,
   parseKaspiLink,
+  refreshAllPrices,
   updateItem,
   verifyAdmin,
 } from "../api.js";
@@ -31,6 +32,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   async function load() {
     const data = await fetchItems();
@@ -170,6 +172,36 @@ export default function AdminPage() {
     }
   }
 
+  async function onRefreshAllPrices() {
+    setError("");
+    setMessage("");
+    if (
+      !confirm(
+        "Обновить цены всех подарков из Kaspi? Это может занять минуту."
+      )
+    ) {
+      return;
+    }
+    setRefreshing(true);
+    try {
+      await verifyAdmin(token);
+      const result = await refreshAllPrices(token);
+      const errCount = result.errors?.length || 0;
+      setMessage(
+        `Цены обновлены: ${result.updated ?? 0} из ${result.total ?? 0}` +
+          (errCount ? `, пропущено: ${errCount}` : "")
+      );
+      if (errCount) {
+        console.warn("Price refresh errors:", result.errors);
+      }
+      await load();
+    } catch (err) {
+      setError(err.message || "Не удалось обновить цены");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   if (!authed) {
     return (
       <section className="page narrow">
@@ -198,11 +230,15 @@ export default function AdminPage() {
 
   return (
     <section className="page">
-      {parsing && (
+      {(parsing || refreshing) && (
         <div className="parse-overlay" role="status" aria-live="polite">
           <div className="parse-overlay-card">
             <div className="parse-spinner" aria-hidden="true" />
-            <p className="parse-overlay-title">Подтягиваем данные из Kaspi…</p>
+            <p className="parse-overlay-title">
+              {refreshing
+                ? "Обновляем цены из Kaspi…"
+                : "Подтягиваем данные из Kaspi…"}
+            </p>
             <p className="parse-overlay-hint">Обычно занимает несколько секунд</p>
           </div>
         </div>
@@ -210,9 +246,19 @@ export default function AdminPage() {
 
       <div className="admin-head">
         <h1>Управление подарками</h1>
-        <button className="btn ghost" type="button" onClick={logout}>
-          Выйти
-        </button>
+        <div className="row">
+          <button
+            className="btn secondary"
+            type="button"
+            disabled={busy || parsing || refreshing}
+            onClick={onRefreshAllPrices}
+          >
+            {refreshing ? "…" : "Обновить цены"}
+          </button>
+          <button className="btn ghost" type="button" onClick={logout}>
+            Выйти
+          </button>
+        </div>
       </div>
 
       {error && <div className="banner error">{error}</div>}

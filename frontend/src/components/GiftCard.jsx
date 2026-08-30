@@ -1,6 +1,6 @@
 import { formatPrice } from "../api.js";
 
-export default function GiftCard({ item, busy, onReserve, onUnreserve }) {
+export default function GiftCard({ item, busy, canUnreserve, onReserve, onUnreserve }) {
   const taken = Boolean(item.reserved_by);
   const priority = Number(item.priority) || 5;
   const priceLabel = formatPrice(item.price);
@@ -34,6 +34,7 @@ export default function GiftCard({ item, busy, onReserve, onUnreserve }) {
             Открыть в Kaspi
           </a>
           {taken ? (
+            canUnreserve ? (
             <button
               className="btn secondary"
               type="button"
@@ -42,6 +43,7 @@ export default function GiftCard({ item, busy, onReserve, onUnreserve }) {
             >
               {busy ? "…" : "Снять выбор"}
             </button>
+            ) : null
           ) : (
             <button
               className="btn primary"
