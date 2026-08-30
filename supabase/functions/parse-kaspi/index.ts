@@ -13,16 +13,88 @@ function json(body: Record<string, unknown>, status = 200) {
   });
 }
 
+const KASPI_SHORT_HOSTS = new Set(["l.kaspi.kz", "m.kaspi.kz"]);
+
 function isKaspiUrl(raw: string): URL | null {
   try {
     const u = new URL(raw.trim());
     const host = u.hostname.toLowerCase();
-    if (host !== "kaspi.kz" && host !== "www.kaspi.kz") return null;
     if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+
+    const isMain = host === "kaspi.kz" || host === "www.kaspi.kz";
+    const isShort = KASPI_SHORT_HOSTS.has(host);
+    if (!isMain && !isShort) return null;
+    if (isShort && !u.pathname.includes("/shop/")) return null;
+
     return u;
   } catch {
     return null;
   }
+}
+
+function isKaspiProductUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.toLowerCase();
+    return (
+      (host === "kaspi.kz" ||
+        host === "www.kaspi.kz" ||
+        KASPI_SHORT_HOSTS.has(host)) &&
+      u.pathname.includes("/shop/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isMainKaspiProductUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.toLowerCase();
+    return (
+      (host === "kaspi.kz" || host === "www.kaspi.kz") &&
+      u.pathname.includes("/shop/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function linkCanonical(html: string): string | null {
+  const m = html.match(
+    /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i
+  );
+  if (m?.[1]) return decodeHtml(m[1].trim());
+  const m2 = html.match(
+    /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']canonical["']/i
+  );
+  return m2?.[1] ? decodeHtml(m2[1].trim()) : null;
+}
+
+function canonicalKaspiUrl(
+  html: string,
+  finalUrl: string,
+  fallback: string
+): string {
+  const stripQuery = (url: string) => url.split("?")[0];
+  const candidates = [
+    metaContent(html, "og:url"),
+    linkCanonical(html),
+    finalUrl,
+    fallback,
+  ];
+
+  for (const raw of candidates) {
+    if (raw && isMainKaspiProductUrl(raw)) {
+      return stripQuery(raw);
+    }
+  }
+  for (const raw of candidates) {
+    if (raw && isKaspiProductUrl(raw)) {
+      return stripQuery(raw);
+    }
+  }
+  return stripQuery(fallback);
 }
 
 function metaContent(html: string, prop: string): string | null {
@@ -76,7 +148,10 @@ function titleTag(html: string): string | null {
   return cleanTitle(m[1]) || null;
 }
 
-async function fetchHtml(url: string, timeoutMs = 15000): Promise<string> {
+async function fetchHtml(
+  url: string,
+  timeoutMs = 15000
+): Promise<{ html: string; finalUrl: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -90,7 +165,9 @@ async function fetchHtml(url: string, timeoutMs = 15000): Promise<string> {
         "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
       },
     });
-    if (res.ok) return await res.text();
+    if (res.ok) {
+      return { html: await res.text(), finalUrl: res.url };
+    }
     throw new Error(`HTTP_${res.status}`);
   } finally {
     clearTimeout(timeout);
@@ -118,12 +195,15 @@ async function fetchViaJina(kaspiUrl: string): Promise<string> {
   }
 }
 
-async function loadKaspiHtml(kaspiUrl: string): Promise<string> {
+async function loadKaspiHtml(
+  kaspiUrl: string
+): Promise<{ html: string; finalUrl: string }> {
   try {
     return await fetchHtml(kaspiUrl);
   } catch (err) {
     console.warn("direct Kaspi fetch failed, trying Jina", err);
-    return await fetchViaJina(kaspiUrl);
+    const html = await fetchViaJina(kaspiUrl);
+    return { html, finalUrl: kaspiUrl };
   }
 }
 
@@ -206,7 +286,7 @@ Deno.serve(async (req) => {
 
     const kaspiUrl = isKaspiUrl(urlRaw);
     if (!kaspiUrl) {
-      return json({ error: "Нужна корректная ссылка на kaspi.kz" }, 400);
+      return json({ error: "Нужна корректная ссылка на Kaspi" }, 400);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -231,8 +311,11 @@ Deno.serve(async (req) => {
     }
 
     let html: string;
+    let finalUrl: string;
     try {
-      html = await loadKaspiHtml(kaspiUrl.toString());
+      const loaded = await loadKaspiHtml(kaspiUrl.toString());
+      html = loaded.html;
+      finalUrl = loaded.finalUrl;
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         return json(
@@ -255,6 +338,7 @@ Deno.serve(async (req) => {
     return json({
       title: parsed.title,
       image_url: parsed.image_url,
+      kaspi_url: canonicalKaspiUrl(html, finalUrl, kaspiUrl.toString()),
     });
   } catch (err) {
     const message =

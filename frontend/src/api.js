@@ -112,5 +112,6 @@ export async function parseKaspiLink(token, url) {
   return {
     title: data.title || "",
     image_url: data.image_url || "",
+    kaspi_url: data.kaspi_url || "",
   };
 }

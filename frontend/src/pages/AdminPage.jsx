@@ -150,6 +150,7 @@ export default function AdminPage() {
         ...prev,
         title: parsed.title || prev.title,
         image_url: parsed.image_url || prev.image_url,
+        kaspi_url: parsed.kaspi_url || prev.kaspi_url,
       }));
       if (!parsed.title && !parsed.image_url) {
         setError("Не удалось распознать, заполни вручную");
@@ -229,7 +230,7 @@ export default function AdminPage() {
             <input
               value={form.kaspi_url}
               onChange={(e) => setForm({ ...form, kaspi_url: e.target.value })}
-              placeholder="https://kaspi.kz/shop/..."
+              placeholder="https://kaspi.kz/shop/... или https://l.kaspi.kz/shop/..."
               required
             />
             <button
