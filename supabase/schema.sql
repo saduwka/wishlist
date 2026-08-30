@@ -12,6 +12,7 @@ create table if not exists public.items (
   kaspi_url text not null,
   image_url text not null default '',
   notes text not null default '',
+  priority int not null default 5 check (priority between 1 and 10),
   reserved_by text,
   reserved_at timestamptz,
   created_at timestamptz not null default now()
@@ -118,7 +119,8 @@ create or replace function public.admin_create_item(
   p_title text,
   p_kaspi_url text,
   p_image_url text default '',
-  p_notes text default ''
+  p_notes text default '',
+  p_priority int default 5
 )
 returns public.items
 language plpgsql
@@ -127,6 +129,7 @@ set search_path = public
 as $$
 declare
   row public.items;
+  pri int;
 begin
   if not public.verify_admin(p_token) then
     raise exception 'Нужен админ-пароль';
@@ -135,12 +138,17 @@ begin
     raise exception 'Нужны title и kaspi_url';
   end if;
 
-  insert into public.items (title, kaspi_url, image_url, notes)
+  pri := coalesce(p_priority, 5);
+  if pri < 1 then pri := 1; end if;
+  if pri > 10 then pri := 10; end if;
+
+  insert into public.items (title, kaspi_url, image_url, notes, priority)
   values (
     trim(p_title),
     trim(p_kaspi_url),
     coalesce(trim(p_image_url), ''),
-    coalesce(trim(p_notes), '')
+    coalesce(trim(p_notes), ''),
+    pri
   )
   returning * into row;
 
@@ -154,7 +162,8 @@ create or replace function public.admin_update_item(
   p_title text default null,
   p_kaspi_url text default null,
   p_image_url text default null,
-  p_notes text default null
+  p_notes text default null,
+  p_priority int default null
 )
 returns public.items
 language plpgsql
@@ -163,9 +172,16 @@ set search_path = public
 as $$
 declare
   row public.items;
+  pri int;
 begin
   if not public.verify_admin(p_token) then
     raise exception 'Нужен админ-пароль';
+  end if;
+
+  if p_priority is not null then
+    pri := p_priority;
+    if pri < 1 then pri := 1; end if;
+    if pri > 10 then pri := 10; end if;
   end if;
 
   update public.items
@@ -173,7 +189,8 @@ begin
     title = case when p_title is null then title else trim(p_title) end,
     kaspi_url = case when p_kaspi_url is null then kaspi_url else trim(p_kaspi_url) end,
     image_url = case when p_image_url is null then image_url else trim(p_image_url) end,
-    notes = case when p_notes is null then notes else trim(p_notes) end
+    notes = case when p_notes is null then notes else trim(p_notes) end,
+    priority = case when p_priority is null then priority else pri end
   where id = p_id
   returning * into row;
 
@@ -210,8 +227,8 @@ grant select on public.items to anon, authenticated;
 grant execute on function public.verify_admin(text) to anon, authenticated;
 grant execute on function public.reserve_item(bigint, text) to anon, authenticated;
 grant execute on function public.unreserve_item(bigint, text) to anon, authenticated;
-grant execute on function public.admin_create_item(text, text, text, text, text) to anon, authenticated;
-grant execute on function public.admin_update_item(text, bigint, text, text, text, text) to anon, authenticated;
+grant execute on function public.admin_create_item(text, text, text, text, text, int) to anon, authenticated;
+grant execute on function public.admin_update_item(text, bigint, text, text, text, text, int) to anon, authenticated;
 grant execute on function public.admin_delete_item(text, bigint) to anon, authenticated;
 
 -- Change this password before sharing the site:

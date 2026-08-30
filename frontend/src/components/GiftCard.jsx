@@ -1,5 +1,6 @@
 export default function GiftCard({ item, busy, onReserve, onUnreserve }) {
   const taken = Boolean(item.reserved_by);
+  const priority = Number(item.priority) || 5;
 
   return (
     <article className={`card ${taken ? "taken" : ""}`}>
@@ -9,9 +10,12 @@ export default function GiftCard({ item, busy, onReserve, onUnreserve }) {
         ) : (
           <div className="placeholder">Нет фото</div>
         )}
-        <span className={`badge ${taken ? "badge-taken" : "badge-free"}`}>
-          {taken ? `Выбрал(а): ${item.reserved_by}` : "Свободен"}
-        </span>
+        <div className="card-badges">
+          <span className="badge badge-priority">Важность: {priority}</span>
+          <span className={`badge ${taken ? "badge-taken" : "badge-free"}`}>
+            {taken ? `Выбрал(а): ${item.reserved_by}` : "Свободен"}
+          </span>
+        </div>
       </div>
       <div className="card-body">
         <h2>{item.title}</h2>

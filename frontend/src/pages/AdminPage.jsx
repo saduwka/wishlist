@@ -15,6 +15,7 @@ const emptyForm = {
   kaspi_url: "",
   image_url: "",
   notes: "",
+  priority: 5,
 };
 
 export default function AdminPage() {
@@ -83,6 +84,7 @@ export default function AdminPage() {
       kaspi_url: item.kaspi_url,
       image_url: item.image_url || "",
       notes: item.notes || "",
+      priority: Number(item.priority) || 5,
     });
   }
 
@@ -256,6 +258,21 @@ export default function AdminPage() {
             placeholder="Цвет, размер…"
           />
         </label>
+        <label>
+          Важность (1–10)
+          <select
+            value={form.priority}
+            onChange={(e) =>
+              setForm({ ...form, priority: Number(e.target.value) })
+            }
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="row">
           <button className="btn primary" type="submit" disabled={busy}>
             {editingId ? "Сохранить" : "Добавить"}
@@ -274,6 +291,8 @@ export default function AdminPage() {
             <div>
               <strong>{item.title}</strong>
               <div className="muted">
+                Важность: {item.priority ?? 5}
+                {" · "}
                 {item.reserved_by
                   ? `Выбрал(а): ${item.reserved_by}`
                   : "Свободен"}

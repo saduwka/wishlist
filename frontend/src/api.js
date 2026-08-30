@@ -21,8 +21,9 @@ export async function fetchItems() {
   const { data, error } = await supabase
     .from("items")
     .select(
-      "id, title, kaspi_url, image_url, notes, reserved_by, reserved_at, created_at"
+      "id, title, kaspi_url, image_url, notes, priority, reserved_by, reserved_at, created_at"
     )
+    .order("priority", { ascending: false })
     .order("id", { ascending: true });
   if (error) throw rpcError(error);
   return { items: data || [] };
@@ -62,6 +63,7 @@ export async function createItem(token, body) {
     p_kaspi_url: body.kaspi_url,
     p_image_url: body.image_url || "",
     p_notes: body.notes || "",
+    p_priority: Number(body.priority) || 5,
   });
   if (error) throw rpcError(error);
   return { item: data };
@@ -75,6 +77,10 @@ export async function updateItem(token, id, body) {
     p_kaspi_url: body.kaspi_url ?? null,
     p_image_url: body.image_url ?? null,
     p_notes: body.notes ?? null,
+    p_priority:
+      body.priority === undefined || body.priority === null
+        ? null
+        : Number(body.priority),
   });
   if (error) throw rpcError(error);
   return { item: data };
