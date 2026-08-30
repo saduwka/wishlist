@@ -34,12 +34,13 @@ npm run dev
 
 ## GitHub Pages
 
-1. Запушь репозиторий, включи Pages → Source: **GitHub Actions**.
-2. Settings → Secrets and variables → Actions → **Variables**:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_BASE` = `/` (или `/repo-name/` для project site)
-3. Workflow: [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+Сайт: **https://saduwka.github.io/wishlist/**
+
+1. Репозиторий: https://github.com/saduwka/wishlist
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions** (один раз, если ещё не включено).
+3. При push в `main` workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) собирает и публикует фронт.
+
+Переменные Supabase уже прописаны в workflow (anon key публичный). При желании можно переопределить через Settings → Actions → Variables.
 
 ## Как это работает
 

@@ -30,13 +30,12 @@ jobs:
       - name: Install and build
         working-directory: frontend
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          VITE_BASE: ${{ vars.VITE_BASE }}
+          VITE_SUPABASE_URL: https://mnxxnomcwzsisusejuqx.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_Xc9cKMPuw-u_WrovC9fjCQ_Ai0xrG9-
+          VITE_BASE: /wishlist/
         run: |
-          export VITE_BASE="${VITE_BASE:-/${{ github.event.repository.name }}/}"
           npm ci
-          VITE_BASE="$VITE_BASE" npm run build
+          npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
