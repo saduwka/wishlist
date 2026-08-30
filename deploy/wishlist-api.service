@@ -1,0 +1,15 @@
+[Unit]
+Description=Wishlist API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/wishlist
+EnvironmentFile=/opt/wishlist/.env
+ExecStart=/usr/bin/node /opt/wishlist/src/server.js
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

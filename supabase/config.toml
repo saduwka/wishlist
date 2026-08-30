@@ -1,0 +1,8 @@
+# A string used to distinguish different Supabase projects on the same host
+project_id = "mnxxnomcwzsisusejuqx"
+
+[api]
+enabled = true
+
+[functions.parse-kaspi]
+verify_jwt = false

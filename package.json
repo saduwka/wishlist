@@ -1,0 +1,15 @@
+{
+  "name": "wishlist",
+  "version": "1.0.0",
+  "description": "Статический фронт (Vite + React) на GitHub Pages + **Supabase** (Postgres). Гости отмечают подарок своим именем; список правится в админке.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "supabase": "^2.116.0"
+  }
+}
