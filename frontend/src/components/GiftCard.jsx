@@ -1,6 +1,9 @@
+import { formatPrice } from "../api.js";
+
 export default function GiftCard({ item, busy, onReserve, onUnreserve }) {
   const taken = Boolean(item.reserved_by);
   const priority = Number(item.priority) || 5;
+  const priceLabel = formatPrice(item.price);
 
   return (
     <article className={`card ${taken ? "taken" : ""}`}>
@@ -19,6 +22,7 @@ export default function GiftCard({ item, busy, onReserve, onUnreserve }) {
       </div>
       <div className="card-body">
         <h2>{item.title}</h2>
+        {priceLabel && <p className="card-price">{priceLabel}</p>}
         {item.notes && <p className="notes">{item.notes}</p>}
         <div className="card-actions">
           <a

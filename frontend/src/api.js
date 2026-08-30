@@ -17,11 +17,23 @@ function rpcError(error) {
   return new Error(msg.replace(/^.*?: /, "").trim() || msg);
 }
 
+function normalizePrice(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
+export function formatPrice(price) {
+  const n = Number(price);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `${n.toLocaleString("ru-KZ")} ₸`;
+}
+
 export async function fetchItems() {
   const { data, error } = await supabase
     .from("items")
     .select(
-      "id, title, kaspi_url, image_url, notes, priority, reserved_by, reserved_at, created_at"
+      "id, title, kaspi_url, image_url, notes, priority, price, reserved_by, reserved_at, created_at"
     )
     .order("priority", { ascending: false })
     .order("id", { ascending: true });
@@ -64,6 +76,7 @@ export async function createItem(token, body) {
     p_image_url: body.image_url || "",
     p_notes: body.notes || "",
     p_priority: Number(body.priority) || 5,
+    p_price: normalizePrice(body.price),
   });
   if (error) throw rpcError(error);
   return { item: data };
@@ -81,6 +94,7 @@ export async function updateItem(token, id, body) {
       body.priority === undefined || body.priority === null
         ? null
         : Number(body.priority),
+    p_price: normalizePrice(body.price),
   });
   if (error) throw rpcError(error);
   return { item: data };
@@ -113,5 +127,6 @@ export async function parseKaspiLink(token, url) {
     title: data.title || "",
     image_url: data.image_url || "",
     kaspi_url: data.kaspi_url || "",
+    price: data.price ?? null,
   };
 }

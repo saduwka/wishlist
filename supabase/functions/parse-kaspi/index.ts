@@ -207,8 +207,12 @@ async function loadKaspiHtml(
   }
 }
 
-function fromJsonLd(html: string): { title?: string; image?: string } {
-  const out: { title?: string; image?: string } = {};
+function fromJsonLd(html: string): {
+  title?: string;
+  image?: string;
+  price?: number;
+} {
+  const out: { title?: string; image?: string; price?: number } = {};
   const re =
     /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let match;
@@ -237,6 +241,10 @@ function fromJsonLd(html: string): { title?: string; image?: string } {
                 typeof img[0] === "string" ? img[0] : img[0]?.url || undefined;
             } else if (img?.url) out.image = String(img.url);
           }
+          if (!out.price && item.offers) {
+            const price = priceFromOffers(item.offers);
+            if (price) out.price = price;
+          }
         }
       }
     } catch {
@@ -246,7 +254,33 @@ function fromJsonLd(html: string): { title?: string; image?: string } {
   return out;
 }
 
-function parseProduct(html: string): { title: string; image_url: string } {
+function parsePriceValue(raw: unknown): number | null {
+  if (raw === null || raw === undefined) return null;
+  const n = parseInt(String(raw).replace(/\s/g, ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function priceFromOffers(offers: unknown): number | null {
+  if (!offers) return null;
+  const list = Array.isArray(offers) ? offers : [offers];
+  for (const offer of list) {
+    if (!offer || typeof offer !== "object") continue;
+    const type = (offer as Record<string, unknown>)["@type"];
+    const types = Array.isArray(type) ? type : [type];
+    if (!types.some((t) => String(t).toLowerCase() === "offer")) continue;
+    const currency = (offer as Record<string, unknown>).priceCurrency;
+    if (currency && String(currency).toUpperCase() !== "KZT") continue;
+    const price = parsePriceValue((offer as Record<string, unknown>).price);
+    if (price) return price;
+  }
+  return null;
+}
+
+function parseProduct(html: string): {
+  title: string;
+  image_url: string;
+  price: number | null;
+} {
   const ld = fromJsonLd(html);
   const rawTitle =
     metaContent(html, "og:title") ||
@@ -259,11 +293,15 @@ function parseProduct(html: string): { title: string; image_url: string } {
     metaContent(html, "twitter:image") ||
     ld.image ||
     "";
+  const price =
+    ld.price ??
+    parsePriceValue(metaContent(html, "product:price:amount")) ??
+    null;
 
   if (!title && !image_url) {
     throw new Error("Не удалось распознать название и картинку");
   }
-  return { title, image_url };
+  return { title, image_url, price };
 }
 
 Deno.serve(async (req) => {
@@ -339,6 +377,7 @@ Deno.serve(async (req) => {
       title: parsed.title,
       image_url: parsed.image_url,
       kaspi_url: canonicalKaspiUrl(html, finalUrl, kaspiUrl.toString()),
+      price: parsed.price,
     });
   } catch (err) {
     const message =

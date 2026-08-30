@@ -13,6 +13,7 @@ create table if not exists public.items (
   image_url text not null default '',
   notes text not null default '',
   priority int not null default 5 check (priority between 1 and 10),
+  price int,
   reserved_by text,
   reserved_at timestamptz,
   created_at timestamptz not null default now()
@@ -120,7 +121,8 @@ create or replace function public.admin_create_item(
   p_kaspi_url text,
   p_image_url text default '',
   p_notes text default '',
-  p_priority int default 5
+  p_priority int default 5,
+  p_price int default null
 )
 returns public.items
 language plpgsql
@@ -142,13 +144,14 @@ begin
   if pri < 1 then pri := 1; end if;
   if pri > 10 then pri := 10; end if;
 
-  insert into public.items (title, kaspi_url, image_url, notes, priority)
+  insert into public.items (title, kaspi_url, image_url, notes, priority, price)
   values (
     trim(p_title),
     trim(p_kaspi_url),
     coalesce(trim(p_image_url), ''),
     coalesce(trim(p_notes), ''),
-    pri
+    pri,
+    p_price
   )
   returning * into row;
 
@@ -163,7 +166,8 @@ create or replace function public.admin_update_item(
   p_kaspi_url text default null,
   p_image_url text default null,
   p_notes text default null,
-  p_priority int default null
+  p_priority int default null,
+  p_price int default null
 )
 returns public.items
 language plpgsql
@@ -190,7 +194,8 @@ begin
     kaspi_url = case when p_kaspi_url is null then kaspi_url else trim(p_kaspi_url) end,
     image_url = case when p_image_url is null then image_url else trim(p_image_url) end,
     notes = case when p_notes is null then notes else trim(p_notes) end,
-    priority = case when p_priority is null then priority else pri end
+    priority = case when p_priority is null then priority else pri end,
+    price = p_price
   where id = p_id
   returning * into row;
 
@@ -227,8 +232,8 @@ grant select on public.items to anon, authenticated;
 grant execute on function public.verify_admin(text) to anon, authenticated;
 grant execute on function public.reserve_item(bigint, text) to anon, authenticated;
 grant execute on function public.unreserve_item(bigint, text) to anon, authenticated;
-grant execute on function public.admin_create_item(text, text, text, text, text, int) to anon, authenticated;
-grant execute on function public.admin_update_item(text, bigint, text, text, text, text, int) to anon, authenticated;
+grant execute on function public.admin_create_item(text, text, text, text, text, int, int) to anon, authenticated;
+grant execute on function public.admin_update_item(text, bigint, text, text, text, text, int, int) to anon, authenticated;
 grant execute on function public.admin_delete_item(text, bigint) to anon, authenticated;
 
 -- Change this password before sharing the site:

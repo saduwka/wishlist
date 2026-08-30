@@ -3,6 +3,7 @@ import {
   createItem,
   deleteItem,
   fetchItems,
+  formatPrice,
   parseKaspiLink,
   updateItem,
   verifyAdmin,
@@ -16,6 +17,7 @@ const emptyForm = {
   image_url: "",
   notes: "",
   priority: 5,
+  price: "",
 };
 
 export default function AdminPage() {
@@ -85,6 +87,7 @@ export default function AdminPage() {
       image_url: item.image_url || "",
       notes: item.notes || "",
       priority: Number(item.priority) || 5,
+      price: item.price ?? "",
     });
   }
 
@@ -151,6 +154,7 @@ export default function AdminPage() {
         title: parsed.title || prev.title,
         image_url: parsed.image_url || prev.image_url,
         kaspi_url: parsed.kaspi_url || prev.kaspi_url,
+        price: parsed.price ?? prev.price,
       }));
       if (!parsed.title && !parsed.image_url) {
         setError("Не удалось распознать, заполни вручную");
@@ -171,7 +175,7 @@ export default function AdminPage() {
       <section className="page narrow">
         <h1>Админка</h1>
         <p className="lede">
-          Введите админ-пароль (значение <code>admin_token</code> в Supabase).
+          Введите админ-пароль.
         </p>
         <form className="panel" onSubmit={onLogin}>
           <label>
@@ -252,6 +256,17 @@ export default function AdminPage() {
           />
         </label>
         <label>
+          Цена, ₸
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            placeholder="52970"
+          />
+        </label>
+        <label>
           Заметка
           <input
             value={form.notes}
@@ -292,6 +307,7 @@ export default function AdminPage() {
             <div>
               <strong>{item.title}</strong>
               <div className="muted">
+                {formatPrice(item.price) ? `${formatPrice(item.price)} · ` : ""}
                 Важность: {item.priority ?? 5}
                 {" · "}
                 {item.reserved_by
