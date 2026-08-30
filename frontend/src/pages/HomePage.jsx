@@ -86,7 +86,7 @@ export default function HomePage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Например, Айгуль"
+            placeholder="Например, Иван"
             maxLength={80}
           />
         </label>
