@@ -302,12 +302,14 @@ export default function AdminPage() {
       </form>
 
       <div className="admin-list">
-        {items.map((item) => (
+        {items.map((item) => {
+          const priceLabel = formatPrice(item.price);
+          return (
           <div key={item.id} className="admin-row">
             <div>
               <strong>{item.title}</strong>
               <div className="muted">
-                {formatPrice(item.price) ? `${formatPrice(item.price)} · ` : ""}
+                {priceLabel ? `${priceLabel} · ` : ""}
                 Важность: {item.priority ?? 5}
                 {" · "}
                 {item.reserved_by
@@ -332,7 +334,8 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
