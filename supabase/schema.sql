@@ -56,7 +56,7 @@ create or replace function public.reserve_item(
 returns public.items
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   row public.items;
@@ -101,7 +101,7 @@ create or replace function public.unreserve_item(p_id bigint, p_pin text)
 returns public.items
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   row public.items;

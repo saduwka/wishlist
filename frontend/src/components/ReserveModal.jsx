@@ -103,7 +103,7 @@ export default function ReserveModal({
               <input
                 ref={inputRef}
                 className="pin-input"
-                type="password"
+                type="text"
                 inputMode="numeric"
                 autoComplete="off"
                 value={pin}

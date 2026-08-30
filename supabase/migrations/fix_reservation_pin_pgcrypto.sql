@@ -1,13 +1,4 @@
--- Reservation PIN (4 digits, bcrypt hash). Run once in Supabase SQL Editor.
-
-create extension if not exists pgcrypto;
-
-alter table public.items
-  add column if not exists reservation_pin_hash text;
-
-drop function if exists public.reserve_item(bigint, text);
-drop function if exists public.reserve_item(bigint, text, text);
-drop function if exists public.unreserve_item(bigint, text);
+-- Fix pgcrypto: gen_salt/crypt live in extensions schema on Supabase.
 
 create or replace function public.reserve_item(
   p_id bigint,
@@ -96,5 +87,4 @@ begin
 end;
 $$;
 
-grant execute on function public.reserve_item(bigint, text, text) to anon, authenticated;
-grant execute on function public.unreserve_item(bigint, text) to anon, authenticated;
+notify pgrst, 'reload schema';
