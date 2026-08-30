@@ -191,6 +191,16 @@ export default function AdminPage() {
 
   return (
     <section className="page">
+      {parsing && (
+        <div className="parse-overlay" role="status" aria-live="polite">
+          <div className="parse-overlay-card">
+            <div className="parse-spinner" aria-hidden="true" />
+            <p className="parse-overlay-title">Подтягиваем данные из Kaspi…</p>
+            <p className="parse-overlay-hint">Обычно занимает несколько секунд</p>
+          </div>
+        </div>
+      )}
+
       <div className="admin-head">
         <h1>Управление подарками</h1>
         <button className="btn ghost" type="button" onClick={logout}>

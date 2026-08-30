@@ -335,3 +335,54 @@ input {
     align-items: stretch;
   }
 }
+
+.parse-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(31, 26, 23, 0.45);
+  backdrop-filter: blur(4px);
+  pointer-events: all;
+}
+
+.parse-overlay-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 2rem 2.25rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  max-width: min(90vw, 360px);
+  text-align: center;
+}
+
+.parse-spinner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 5px solid var(--line);
+  border-top-color: var(--accent);
+  animation: parse-spin 0.85s linear infinite;
+}
+
+.parse-overlay-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.parse-overlay-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+@keyframes parse-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
