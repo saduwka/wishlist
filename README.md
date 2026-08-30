@@ -56,8 +56,11 @@ Anon key в бандле — нормально; прямых `INSERT/UPDATE/DEL
 
 1. Войди в `/admin` (пароль по умолчанию после `schema.sql`: **`house2026`**, если не менял в SQL).
 2. Вставь ссылку на товар → **Подтянуть** → проверь название и картинку → **Добавить**.
+3. Поле **Важность (1–10)** — чем выше, тем выше карточка в списке (по умолчанию 5).
 
 Edge Function: `parse-kaspi` (деплой: `npx supabase functions deploy parse-kaspi --project-ref mnxxnomcwzsisusejuqx`).
+
+Если база уже была без `priority`, выполни [`supabase/migrations/add_priority.sql`](supabase/migrations/add_priority.sql) в SQL Editor.
 
 Сменить пароль админки в SQL Editor:
 
