@@ -9,7 +9,21 @@ export default function GiftCard({ item, busy, canUnreserve, onReserve, onUnrese
     <article className={`card ${taken ? "taken" : ""}`}>
       <div className="card-image">
         {item.image_url ? (
-          <img src={item.image_url} alt={item.title} loading="lazy" />
+          <>
+            <img
+              className="card-image-bg"
+              src={item.image_url}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+            />
+            <img
+              className="card-image-main"
+              src={item.image_url}
+              alt={item.title}
+              loading="lazy"
+            />
+          </>
         ) : (
           <div className="placeholder">Нет фото</div>
         )}
