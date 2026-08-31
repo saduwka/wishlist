@@ -22,7 +22,7 @@ export default function GiftCard({ item, busy, canUnreserve, onReserve, onUnrese
       </div>
       <div className="card-body">
         <h2>{item.title}</h2>
-        {priceLabel && <p className="card-price">{priceLabel}</p>}
+        <p className="card-price">{priceLabel || "\u00a0"}</p>
         {item.notes && <p className="notes">{item.notes}</p>}
         <div className="card-actions">
           <a
