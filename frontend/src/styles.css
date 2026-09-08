@@ -492,3 +492,7 @@ input {
 .admin-head .row {
   margin-top: 0;
 }
+
+.important {
+  font-size: 0.8rem;
+}

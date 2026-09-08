@@ -13,9 +13,9 @@ export default function App() {
             <small>новоселье</small>
           </span>
         </Link>
-        <Link to="/admin" className="nav-link">
+        {/* <Link to="/admin" className="nav-link">
           Админка
-        </Link>
+        </Link> */}
       </header>
       <main>
         <Routes>

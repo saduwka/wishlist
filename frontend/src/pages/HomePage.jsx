@@ -157,7 +157,7 @@ export default function HomePage() {
           новом доме. Отметьте, что уже выбрали, чтобы никто не подарил то же
           самое 💚
         </p>
-        <p>
+        <p className="important">
           Обратите внимание на важность подарка 😅
         </p>
         {!loading && !error && (
