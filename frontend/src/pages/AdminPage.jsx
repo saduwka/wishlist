@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
   createItem,
@@ -205,11 +206,16 @@ export default function AdminPage() {
   if (!authed) {
     return (
       <section className="page narrow">
+        <p className="hero-eyebrow">Только для своих</p>
         <h1>Админка</h1>
-        <p className="lede">
-          Введите админ-пароль.
-        </p>
-        <form className="panel" onSubmit={onLogin}>
+        <p className="lede">Введите админ-пароль.</p>
+        <motion.form
+          className="panel"
+          onSubmit={onLogin}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
           <label>
             Пароль
             <input
@@ -223,26 +229,44 @@ export default function AdminPage() {
           <button className="btn primary" type="submit" disabled={busy}>
             Войти
           </button>
-        </form>
+        </motion.form>
       </section>
     );
   }
 
   return (
     <section className="page">
-      {(parsing || refreshing) && (
-        <div className="parse-overlay" role="status" aria-live="polite">
-          <div className="parse-overlay-card">
-            <div className="parse-spinner" aria-hidden="true" />
-            <p className="parse-overlay-title">
-              {refreshing
-                ? "Обновляем цены из Kaspi…"
-                : "Подтягиваем данные из Kaspi…"}
-            </p>
-            <p className="parse-overlay-hint">Обычно занимает несколько секунд</p>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {(parsing || refreshing) && (
+          <motion.div
+            className="parse-overlay"
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="parse-overlay-card"
+              initial={{ opacity: 0, y: 20, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            >
+              <div className="parse-spinner" aria-hidden="true" />
+              <p className="parse-overlay-title">
+                {refreshing
+                  ? "Обновляем цены из Kaspi…"
+                  : "Подтягиваем данные из Kaspi…"}
+              </p>
+              <p className="parse-overlay-hint">
+                Обычно занимает несколько секунд
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="admin-head">
         <h1>Управление подарками</h1>
@@ -347,42 +371,52 @@ export default function AdminPage() {
         </div>
       </form>
 
-      <div className="admin-list">
-        {items.map((item) => {
-          const priceLabel = formatPrice(item.price);
-          return (
-          <div key={item.id} className="admin-row">
-            <div>
-              <strong>{item.title}</strong>
-              <div className="muted">
-                {priceLabel ? `${priceLabel} · ` : ""}
-                Важность: {item.priority ?? 5}
-                {" · "}
-                {item.reserved_by
-                  ? `Выбрал(а): ${item.reserved_by}`
-                  : "Свободен"}
-              </div>
-            </div>
-            <div className="row">
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => startEdit(item)}
+      <motion.div className="admin-list" layout>
+        <AnimatePresence initial={false}>
+          {items.map((item) => {
+            const priceLabel = formatPrice(item.price);
+            return (
+              <motion.div
+                key={item.id}
+                className={`admin-row ${editingId === item.id ? "editing" : ""}`}
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ type: "spring", stiffness: 380, damping: 34 }}
               >
-                Изменить
-              </button>
-              <button
-                className="btn secondary"
-                type="button"
-                onClick={() => onDelete(item.id)}
-              >
-                Удалить
-              </button>
-            </div>
-          </div>
-          );
-        })}
-      </div>
+                <div>
+                  <strong>{item.title}</strong>
+                  <div className="muted">
+                    {priceLabel ? `${priceLabel} · ` : ""}
+                    Важность: {item.priority ?? 5}
+                    {" · "}
+                    {item.reserved_by
+                      ? `Выбрал(а): ${item.reserved_by}`
+                      : "Свободен"}
+                  </div>
+                </div>
+                <div className="row">
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => startEdit(item)}
+                  >
+                    Изменить
+                  </button>
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => onDelete(item.id)}
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </motion.div>
     </section>
   );
 }
