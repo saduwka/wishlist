@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import useMediaQuery, { TOUCH_QUERY } from "../hooks/useMediaQuery.js";
+import { prefersReducedMotion } from "../lib/motion.js";
 import PinInput from "./PinInput.jsx";
 
 const PIN_HINT_RESERVE =
@@ -13,6 +14,13 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const TAP = { scale: 0.96 };
+const STACK_MS = 520;
+const SUCCESS_MS = 850;
+const ERROR_MS = 650;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export default function ReserveModal({
   open,
@@ -32,15 +40,34 @@ export default function ReserveModal({
 }) {
   const inputRef = useRef(null);
   const cardRef = useRef(null);
+  const seqRef = useRef(0);
   const isSheet = useMediaQuery(TOUCH_QUERY);
   const dragControls = useDragControls();
+  const [pinPhase, setPinPhase] = useState("input");
+
+  const isReserve = mode === "reserve";
+  const isNameStep = isReserve && step === "name";
+  const animating = pinPhase !== "input";
+  const locked = busy || animating;
+
+  useEffect(() => {
+    if (!open) {
+      setPinPhase("input");
+      seqRef.current += 1;
+    }
+  }, [open]);
+
+  useEffect(() => {
+    setPinPhase("input");
+    seqRef.current += 1;
+  }, [step, mode]);
 
   useEffect(() => {
     if (!open) return undefined;
 
     const onKey = (e) => {
       if (e.key === "Escape") {
-        onClose();
+        if (!locked) onClose();
         return;
       }
       if (e.key !== "Tab") return;
@@ -59,7 +86,7 @@ export default function ReserveModal({
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, locked]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -73,21 +100,49 @@ export default function ReserveModal({
   // Delayed so focus lands after the step transition has swapped the field in.
   // The sheet needs longer, otherwise the keyboard fights the slide-up.
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || animating) return undefined;
     const timer = setTimeout(() => inputRef.current?.focus(), isSheet ? 420 : 260);
     return () => clearTimeout(timer);
-  }, [open, step, mode, isSheet]);
+  }, [open, step, mode, isSheet, animating]);
 
-  const isReserve = mode === "reserve";
-  const isNameStep = isReserve && step === "name";
-
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
+    if (locked) return;
+
     if (isNameStep) {
       onNext();
       return;
     }
-    onConfirm();
+
+    if (!/^\d{4}$/.test(pin.trim())) {
+      await onConfirm();
+      return;
+    }
+
+    const seq = ++seqRef.current;
+    const reduced = prefersReducedMotion();
+
+    setPinPhase("stacking");
+    if (!reduced) await sleep(STACK_MS);
+    if (seq !== seqRef.current) return;
+
+    setPinPhase("loading");
+    const result = await onConfirm();
+    if (seq !== seqRef.current) return;
+
+    if (result?.ok) {
+      setPinPhase("success");
+      await sleep(reduced ? 120 : SUCCESS_MS);
+      if (seq !== seqRef.current) return;
+      onClose({ force: true });
+      return;
+    }
+
+    setPinPhase("error");
+    await sleep(reduced ? 80 : ERROR_MS);
+    if (seq !== seqRef.current) return;
+    setPinPhase("input");
+    requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   return (
@@ -101,7 +156,7 @@ export default function ReserveModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
+            if (e.target === e.currentTarget && !locked) onClose();
           }}
         >
           <motion.div
@@ -120,20 +175,20 @@ export default function ReserveModal({
               isSheet ? { y: "100%" } : { opacity: 0, y: 16, scale: 0.96 }
             }
             transition={{ type: "spring", stiffness: 420, damping: 36 }}
-            drag={isSheet ? "y" : false}
+            drag={isSheet && !locked ? "y" : false}
             dragControls={dragControls}
             dragListener={false}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
             onDragEnd={(_, info) => {
-              if (busy) return;
+              if (locked) return;
               if (info.offset.y > 120 || info.velocity.y > 500) onClose();
             }}
           >
             <div
               className="sheet-grip"
               aria-hidden="true"
-              onPointerDown={(e) => isSheet && dragControls.start(e)}
+              onPointerDown={(e) => isSheet && !locked && dragControls.start(e)}
             >
               <span className="sheet-handle" />
             </div>
@@ -171,6 +226,7 @@ export default function ReserveModal({
                         maxLength={80}
                         required
                         autoComplete="name"
+                        disabled={locked}
                       />
                     </label>
                   ) : (
@@ -179,14 +235,15 @@ export default function ReserveModal({
                       label="PIN (4 цифры)"
                       value={pin}
                       onChange={onPinChange}
-                      disabled={busy}
+                      disabled={locked}
+                      phase={pinPhase}
                     />
                   )}
                 </motion.div>
               </AnimatePresence>
 
               <AnimatePresence>
-                {error && (
+                {error && pinPhase === "input" && (
                   <motion.div
                     className="banner error modal-banner"
                     initial={{ opacity: 0, y: -6 }}
@@ -199,12 +256,16 @@ export default function ReserveModal({
                 )}
               </AnimatePresence>
 
-              <div className="row modal-actions">
+              <div
+                className="row modal-actions"
+                hidden={animating && !isNameStep}
+                aria-hidden={animating && !isNameStep ? true : undefined}
+              >
                 {isReserve && step === "pin" && (
                   <motion.button
                     className="btn ghost"
                     type="button"
-                    disabled={busy}
+                    disabled={locked}
                     onClick={onBack}
                     whileTap={TAP}
                   >
@@ -214,7 +275,7 @@ export default function ReserveModal({
                 <motion.button
                   className="btn primary"
                   type="submit"
-                  disabled={busy}
+                  disabled={locked}
                   whileTap={TAP}
                 >
                   {busy
@@ -228,8 +289,8 @@ export default function ReserveModal({
                 <motion.button
                   className="btn ghost"
                   type="button"
-                  disabled={busy}
-                  onClick={onClose}
+                  disabled={locked}
+                  onClick={() => onClose()}
                   whileTap={TAP}
                 >
                   Отмена

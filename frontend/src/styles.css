@@ -1265,13 +1265,108 @@ select option {
 }
 
 .pin-boxes {
+  position: relative;
   display: flex;
   gap: 0.6rem;
+  min-height: 4rem;
+}
+
+.pin-boxes.is-stacking {
+  min-height: 5.75rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-cell {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+}
+
+.pin-cell.is-in-stack {
+  pointer-events: none;
+}
+
+.pin-cell.is-merged {
+  pointer-events: none;
+}
+
+.pin-field.is-stacked .pin-box {
+  color: transparent;
+  caret-color: transparent;
+}
+
+.pin-cell.is-in-stack .pin-cell-neon-path {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent-2) 40%, transparent));
+}
+
+.pin-cell.is-merged .pin-cell-neon,
+.pin-cell.is-merged .pin-box {
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+.pin-cell-neon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 2;
+}
+
+.pin-cell-neon-path {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0 100;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+.pin-cell.is-tracing .pin-cell-neon-path {
+  opacity: 1;
+  animation: pin-neon-trace 0.55s var(--ease-out) forwards;
+}
+
+.pin-cell.is-filled .pin-cell-neon-path {
+  opacity: 1;
+  stroke-dasharray: 100 0;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-2) 65%, transparent))
+    drop-shadow(0 0 12px color-mix(in srgb, var(--glow-c) 40%, transparent));
+}
+
+.pin-cell.is-filled .pin-box {
+  border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2) 22%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+@keyframes pin-neon-trace {
+  0% {
+    opacity: 1;
+    stroke-dasharray: 10 90;
+    stroke-dashoffset: 0;
+  }
+  75% {
+    stroke-dasharray: 14 86;
+    stroke-dashoffset: -100;
+  }
+  100% {
+    opacity: 1;
+    stroke-dasharray: 100 0;
+    stroke-dashoffset: -100;
+  }
 }
 
 .pin-box {
-  flex: 1;
-  min-width: 0;
+  position: relative;
+  z-index: 1;
+  width: 100%;
   height: 4rem;
   text-align: center;
   font-family: var(--font-display);
@@ -1284,6 +1379,82 @@ select option {
 
 .pin-box:focus {
   transform: translateY(-2px);
+}
+
+.pin-stack-tile {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 10;
+  width: 4.6rem;
+  height: 4.6rem;
+  margin-left: -2.3rem;
+  margin-top: -2.3rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 45%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-2) 28%, transparent),
+    0 12px 32px rgba(3, 4, 10, 0.45),
+    0 0 28px color-mix(in srgb, var(--accent-2) 32%, transparent),
+    0 0 48px color-mix(in srgb, var(--glow-c) 18%, transparent);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pin-stack-tile-glow {
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(
+    circle at 50% 45%,
+    color-mix(in srgb, var(--accent-2) 28%, transparent),
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+.pin-stack-tile.is-success {
+  border-color: color-mix(in srgb, var(--accent-2) 65%, transparent);
+  color: var(--accent-2);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-2) 40%, transparent),
+    0 12px 32px rgba(3, 4, 10, 0.4),
+    0 0 36px color-mix(in srgb, var(--accent-2) 45%, transparent);
+}
+
+.pin-stack-tile.is-error {
+  border-color: color-mix(in srgb, var(--danger) 65%, transparent);
+  color: var(--danger);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--danger) 40%, transparent),
+    0 12px 32px rgba(3, 4, 10, 0.4),
+    0 0 36px color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.pin-stack-icon-wrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.pin-spinner {
+  position: relative;
+  z-index: 1;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--accent);
+  border-right-color: var(--glow-c);
+  animation: parse-spin 0.75s linear infinite;
+}
+
+.pin-status-icon {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 /* ---------------------------------------------------------------

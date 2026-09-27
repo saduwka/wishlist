@@ -86,8 +86,8 @@ export default function HomePage() {
     setModal({ mode: "unreserve", itemId: item.id, itemTitle: item.title });
   }
 
-  function closeModal() {
-    if (busyId) return;
+  function closeModal(options = {}) {
+    if (busyId && !options.force) return;
     setModal(null);
     setModalError("");
     setModalPin("");
@@ -111,17 +111,17 @@ export default function HomePage() {
   }
 
   async function onModalConfirm() {
-    if (!modal) return;
+    if (!modal) return { ok: false };
 
     if (modal.mode === "reserve" && modalStep === "name") {
       onModalNext();
-      return;
+      return { ok: false };
     }
 
     const pin = modalPin.trim();
     if (!/^\d{4}$/.test(pin)) {
       setModalError("PIN должен состоять из 4 цифр");
-      return;
+      return { ok: false, message: "PIN должен состоять из 4 цифр" };
     }
 
     setBusyId(modal.itemId);
@@ -150,13 +150,12 @@ export default function HomePage() {
         saveMyItems(nextIds);
         pushToast("Выбор снят — подарок снова свободен", "info");
       }
-      setModal(null);
-      setModalPin("");
-      setModalStep("name");
+      return { ok: true };
     } catch (err) {
       setModalError(err.message);
       errorFeedback();
       await load();
+      return { ok: false, message: err.message };
     } finally {
       setBusyId(null);
     }
