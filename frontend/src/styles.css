@@ -847,6 +847,39 @@ main {
   background: var(--surface);
 }
 
+.contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.contact-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
+.contact-btn-whatsapp .contact-icon {
+  color: #25d366;
+}
+
+.contact-btn-telegram .contact-icon {
+  color: #2aabee;
+}
+
+.contact-btn-whatsapp:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #25d366 55%, var(--line));
+  background: color-mix(in srgb, #25d366 12%, transparent);
+  color: var(--ink);
+}
+
+.contact-btn-telegram:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #2aabee 55%, var(--line));
+  background: color-mix(in srgb, #2aabee 12%, transparent);
+  color: var(--ink);
+}
+
 /* ---------------------------------------------------------------
    Forms
 --------------------------------------------------------------- */
